@@ -51,35 +51,35 @@ for line in f:
     cur_low  = val_low if (cur_low is None or val_low < cur_low) else cur_low
     if val_time == "031000":
       #print "hilo for ", cur_date, " are ", cur_high, " and ", cur_low
-      oco_sell = cur_high + .00010
-      oco_buy = cur_low - 0.00010
+      oco_buy = cur_high + .00010
+      oco_sell = cur_low - 0.00010
       oco_set = True
       oco_triggered = False
       print cur_date, "{0:1.6f} {1:1.6f}".format(oco_sell,oco_buy),
 
   # Figure out when the OCO order will trigger
   elif val_time > "031000" and oco_set and not oco_triggered:
-    if val_high >= oco_sell and val_low <= oco_buy:
+    if val_high >= oco_buy and val_low <= oco_sell:
       # oco_triggered = True
       handle_later = True
       print "OCO sell AND buy triggered in a min:", val_time
-    elif val_high >= oco_sell:
+    elif val_high >= oco_buy:
       oco_triggered = True
-      oco_type = "sell"
+      oco_type = "Buy"
       print "Sell", val_time,
-    elif val_low <= oco_buy:
+    elif val_low <= oco_sell:
       oco_triggered = True
-      oco_type = "buy"
+      oco_type = "Sell"
       print "Buy", val_time,
 
   # Once OCO triggered, figure out what time profit-taking limit triggers
   elif oco_set and oco_triggered and not oco_sold:
-    if oco_type == "sell":
+    if oco_type == "Sell":
       target_price = oco_sell - profit
       if val_low < target_price:
         print "{0:1.6f} ".format(target_price), val_time
         oco_sold = True
-    elif oco_type == "buy":
+    elif oco_type == "Buy":
       target_price = oco_buy + profit
       if val_high > target_price:
         print "{0:1.6f} ".format(target_price), val_time
