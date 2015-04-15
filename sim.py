@@ -10,11 +10,12 @@ oco_buy = None
 oco_sell = None
 oco_set = False
 oco_triggered = False
-oco_sold = False
+oco_sold_or_stopped = False
 oco_type = None
 
 handle_later = False
-profit = 0.00100
+pip = 0.0001
+profit = 60 * pip
 
 for line in f:
   items = line.split()
@@ -28,7 +29,7 @@ for line in f:
   # If we've moved to the next day
   if val_date != cur_date:
 
-    if oco_triggered and not oco_sold:
+    if oco_triggered and not oco_sold_or_stopped:
       print "---NOEXEC---"
 
     cur_date = val_date
@@ -38,7 +39,7 @@ for line in f:
     oco_sell = None
     oco_set = False
     oco_triggered = False
-    oco_sold = False
+    oco_sold_or_stopped = False
     oco_type = None
     handle_later = False
 
@@ -66,24 +67,38 @@ for line in f:
     elif val_high >= oco_buy:
       oco_triggered = True
       oco_type = "Buy"
-      print "Sell", val_time,
+      print "Buy", val_time,
     elif val_low <= oco_sell:
       oco_triggered = True
       oco_type = "Sell"
-      print "Buy", val_time,
-
-  # Once OCO triggered, figure out what time profit-taking limit triggers
-  elif oco_set and oco_triggered and not oco_sold:
+      print "Sell", val_time,
+      
+      
+  # Once OCO triggered, figure out what time profit-taking or stop limit triggers
+  elif oco_set and oco_triggered and not oco_sold_or_stopped:
     if oco_type == "Sell":
       target_price = oco_sell - profit
-      if val_low < target_price:
+      stop_price = oco_buy
+      if val_low <= target_price and val_high >= stop_price:
+        print "Target and Stop hit in the same minute"
+        handle_later = True
+      elif val_low <= target_price:
         print "{0:1.6f} ".format(target_price), val_time
-        oco_sold = True
+        oco_sold_or_stopped = True
+      elif val_high >= stop_price:
+        print "STOP", val_time
+        oco_sold_or_stopped = True
     elif oco_type == "Buy":
       target_price = oco_buy + profit
-      if val_high > target_price:
+      stop_price = oco_sell
+      if val_high >= target_price and val_low <= stop_price:
+        print "Target and Stop hit in the same minute"
+      elif val_high >= target_price:
         print "{0:1.6f} ".format(target_price), val_time
-        oco_sold = True
+        oco_sold_or_stopped = True
+      elif val_low <= stop_price:
+        print "STOP", val_time
+        oco_sold_or_stopped = True
     else:
       print "------BUG------"
 
